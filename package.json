@@ -1,0 +1,14 @@
+{
+  "name": "ocs-question-bank",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OCS 本地 AI 题库：本地题库优先，未命中时调用大模型作答，答案自动沉淀",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,31 @@
+# ============ 私有数据：绝不提交 ============
+# data/ 下是题库、查询日志和含 API Key 的配置
+data/
+
+# ============ 密钥与环境变量 ============
+.env
+.env.*
+*.key
+*.pem
+*secret*
+*credential*
+
+# ============ 本地工作区 / 开发临时产物 ============
+.workbuddy/
+.demo*/
+.cv*/
+.cx*/
+.cd*/
+.v*.js
+.bat.bak
+*.tmp
+*.log
+*.zip
+
+# ============ 系统与编辑器 ============
+Thumbs.db
+Desktop.ini
+.DS_Store
+.idea/
+.vscode/
+node_modules/

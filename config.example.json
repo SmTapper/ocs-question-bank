@@ -1,0 +1,74 @@
+{
+  "server": {
+    "port": 7788,
+    "host": "127.0.0.1"
+  },
+  "match": {
+    "enableFuzzy": true,
+    "threshold": 0.88,
+    "minLengthRatio": 0.6
+  },
+  "llm": {
+    "enabled": true,
+    "baseURL": "https://api.deepseek.com/v1",
+    "apiKey": "",
+    "model": "deepseek-flash",
+    "visionModel": "",
+    "visionBaseURL": "",
+    "visionApiKey": "",
+    "thinking": {
+      "enabled": false,
+      "effort": "high"
+    },
+    "temperature": 0.1,
+    "maxTokens": 1024,
+    "timeout": 45000,
+    "concurrency": 2,
+    "platforms": [
+      {
+        "id": "p_default",
+        "name": "DeepSeek",
+        "baseURL": "https://api.deepseek.com/v1",
+        "apiKey": "",
+        "enabled": true,
+        "models": [
+          {
+            "id": "deepseek-flash",
+            "name": "deepseek-flash",
+            "type": "text",
+            "enabled": true
+          },
+          {
+            "id": "deepseek-v4-pro",
+            "name": "deepseek-v4-pro",
+            "type": "text",
+            "enabled": true
+          }
+        ]
+      },
+      {
+        "id": "pmwhdhwzp9u3",
+        "name": "GLM",
+        "baseURL": "https://open.bigmodel.cn/api/paas/v4",
+        "apiKey": "",
+        "enabled": true,
+        "icon": "",
+        "models": []
+      }
+    ],
+    "systemPrompt": "你是一个严谨的网课答题助手。请根据题干和选项判断正确答案。\n只输出一个 JSON 对象，不要输出任何其他内容，格式为：\n{\"answer\":\"A\",\"explanation\":\"简要解析\"}\n规则：\n1. 单选/判断/填空：answer 为选项字母（如 \"A\"）或填空的答案文本。\n2. 多选题：answer 为多个选项字母，用英文井号 # 连接，例如 \"A#C\"。\n3. 判断题：answer 只返回「对」或「错」，不要返回选项字母。\n4. 拿不准也要给出最可能的答案，不要回答\"无法确定\"。\n5. explanation 控制在 60 字以内。",
+    "textPlatformId": "p_default",
+    "__saveProvider": true
+  },
+  "answer": {
+    "multipleSeparator": "#",
+    "judgeTrue": "对",
+    "judgeFalse": "错",
+    "preferText": true
+  },
+  "storage": {
+    "autoSaveAI": true,
+    "autoSaveProvider": true
+  },
+  "providers": []
+}

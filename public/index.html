@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCS 本地 AI 题库</title>
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%234d7cfe'/><text y='68' x='50' font-size='52' text-anchor='middle' fill='white' font-family='sans-serif'>Q</text></svg>">
+</head>
+<body>
+<div class="app">
+  <!-- 侧边栏 -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">Q</div>
+      <div class="brand-text">
+        <div class="brand-title">OCS 本地 AI 题库</div>
+        <div class="brand-sub">本地题库 · AI 兜底</div>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-item active" data-view="overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        概览
+      </div>
+      <div class="nav-item" data-view="bank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5A2.5 2.5 0 016.5 3H19v18H6.5A2.5 2.5 0 014 18.5v-13z"/><path d="M8 7h7M8 11h7"/></svg>
+        题库管理
+      </div>
+      <div class="nav-item" data-view="providers">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 010 18 15 15 0 010-18z"/></svg>
+        外部题库源
+      </div>
+      <div class="nav-item" data-view="model">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M8 12h.01M16 12h.01M9 16h6"/></svg>
+        模型配置
+      </div>
+      <div class="nav-item" data-view="test">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 3h6M10 3v5.5L5.5 17A2.5 2.5 0 007.8 21h8.4a2.5 2.5 0 002.3-4L14 8.5V3"/><path d="M7.5 15h9"/></svg>
+        在线测试
+      </div>
+      <div class="nav-item" data-view="logs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        查询日志
+      </div>
+      <div class="nav-item" data-view="ocs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13a5 5 0 007 0l2-2a5 5 0 00-7-7l-1 1"/><path d="M14 11a5 5 0 00-7 0l-2 2a5 5 0 007 7l1-1"/></svg>
+        接入 OCS
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div><span class="dot" id="statusDot"></span><span id="statusText">连接中…</span></div>
+      <div style="margin-top:6px" id="verText">v1.0.0</div>
+    </div>
+  </aside>
+
+  <!-- 主区域 -->
+  <main class="main">
+    <header class="topbar">
+      <div style="display:flex;align-items:baseline">
+        <h1 id="pageTitle">概览</h1>
+        <span class="sub" id="pageSub"></span>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-sm" id="btnRefresh">刷新</button>
+        <button class="btn btn-sm btn-primary" id="btnQuickAdd">＋ 添加题目</button>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- ============ 概览 ============ -->
+      <section class="view active" id="view-overview">
+        <div class="grid grid-4" style="margin-bottom:16px">
+          <div class="stat">
+            <div class="stat-label">题库总量</div>
+            <div class="stat-value" id="statTotal">-</div>
+            <div class="stat-foot" id="statTotalFoot">本地已收录题目</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">AI作答</div>
+            <div class="stat-value" id="statAI">-</div>
+            <div class="stat-foot">由大模型生成并沉淀</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">模型状态</div>
+            <div class="stat-value" id="statModel" style="font-size:17px;padding-top:6px">-</div>
+            <div class="stat-foot" id="statModelFoot">-</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">今日查询</div>
+            <div class="stat-value" id="statToday">-</div>
+            <div class="stat-foot" id="statTodayFoot">最近日志统计</div>
+          </div>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <div class="card-title">最近查询</div>
+                <div class="card-desc">OCS 发来的题目与命中情况</div>
+              </div>
+              <button class="btn btn-sm btn-ghost" data-goto="logs">全部 →</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>题目</th><th style="width:104px">来源</th><th style="width:76px">耗时</th></tr></thead>
+                <tbody id="recentBody"><tr><td colspan="3" class="empty">暂无记录</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <div class="card-title">题目来源分布</div>
+                <div class="card-desc">本地题库与 AI 作答的占比</div>
+              </div>
+            </div>
+            <div id="sourceDist" class="mini-list"><div class="empty">暂无数据</div></div>
+            <div id="sourcePie"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 题库管理 ============ -->
+      <section class="view" id="view-bank">
+        <div class="card">
+          <div class="row" style="gap:8px">
+            <input class="input" id="bankSearch" placeholder="搜索题干或答案…" style="flex:1;min-width:220px">
+            <select class="select" id="bankSource" style="width:150px">
+              <option value="">全部来源</option>
+              <option value="manual">手动添加</option>
+              <option value="import">批量导入</option>
+              <option value="ai">AI作答</option>
+            </select>
+            <button class="btn" id="btnBankSearch">搜索</button>
+            <button class="btn" id="btnImport">导入题库</button>
+            <button class="btn" id="btnExport">导出</button>
+            <button class="btn btn-danger" id="btnClear">清空</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:27%">题目</th>
+                  <th style="width:25%">选项</th>
+                  <th style="width:150px">答案</th>
+                  <th style="width:66px">题型</th>
+                  <th style="width:86px">来源</th>
+                  <th style="width:52px">命中</th>
+                  <th style="width:98px">更新时间</th>
+                  <th style="width:68px">操作</th>
+                </tr>
+              </thead>
+              <tbody id="bankBody"><tr><td colspan="8" class="empty">加载中…</td></tr></tbody>
+            </table>
+          </div>
+          <div class="pager">
+            <div id="bankInfo">-</div>
+            <div class="pager-btns">
+              <button class="btn btn-sm" id="btnPrev">上一页</button>
+              <button class="btn btn-sm" id="btnNext">下一页</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 外部题库源 ============ -->
+      <section class="view" id="view-providers">
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">外部题库源</div>
+              <div class="card-desc">本地题库未命中时，会按顺序请求这些题库接口；全部未命中才交给大模型。可添加多个。</div>
+            </div>
+            <div class="head-actions">
+              <button class="btn btn-sm" id="btnImportProvider">导入分享配置</button>
+              <button class="btn btn-primary btn-sm" id="btnAddProvider">＋ 添加题库源</button>
+            </div>
+          </div>
+          <div id="providerList" class="mini-list">
+            <div class="empty">还没有配置外部题库源</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 模型配置 ============ -->
+      <section class="view" id="view-model">
+        <div class="mp-layout">
+          <aside class="mp-side">
+            <div class="mp-side-head">
+              <span>AI 平台管理</span>
+              <button class="mp-add" id="btnAddPlatform" title="添加平台">+</button>
+            </div>
+            <div class="mp-platforms" id="platformList"></div>
+            <div class="mp-side-foot">
+              <div class="mp-global-item" id="btnGlobalSettings">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+                通用设置
+              </div>
+            </div>
+          </aside>
+          <div class="mp-main" id="mpMain"></div>
+        </div>
+      </section>
+
+      <!-- ============ 在线测试 ============ -->
+      <section class="view" id="view-test">
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">模拟一次 OCS 请求</div>
+              <div class="card-desc">验证「本地题库 → 外部题库源 → 大模型」这条链路是否通畅</div>
+            </div>
+          </div>
+
+          <div class="test-block">
+            <div class="test-block-title">题目内容</div>
+            <div class="field">
+              <label>题干</label>
+              <textarea class="textarea" id="testTitle" rows="3" placeholder="例如：下列哪一项不是操作系统的功能？"></textarea>
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label>选项</label>
+              <textarea class="textarea" id="testOptions" rows="4" placeholder="A. 进程管理&#10;B. 内存管理&#10;C. 文字处理&#10;D. 文件管理"></textarea>
+              <div class="hint">每行一个，可带 A. 前缀；填空题可留空</div>
+            </div>
+          </div>
+
+          <div class="test-block">
+            <div class="test-block-title">题目图片<span class="opt-mark">可选</span></div>
+            <div class="file-row">
+              <label class="file-pick">
+                <input type="file" id="testImageFile" accept="image/*" multiple>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+                选择图片
+              </label>
+              <span class="file-name" id="testImageName">未选择文件</span>
+              <button class="btn btn-sm btn-ghost" id="btnClearImages" type="button">清空</button>
+            </div>
+            <div class="hint" id="testImageInfo">选了图片会走视觉模型，题干里的图片位置用 [图片N] 表示</div>
+          </div>
+
+          <div class="test-block">
+            <div class="test-block-title">测试设置</div>
+            <div class="test-opts">
+              <div class="field">
+                <label>题型</label>
+                <select class="select" id="testType">
+                  <option value="single">单选题</option>
+                  <option value="multiple">多选题</option>
+                  <option value="judge">判断题</option>
+                  <option value="completion">填空题</option>
+                </select>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="testUseLLM" checked>
+                <span class="track"></span>
+                <span>调用大模型</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="test-actions">
+            <button class="btn btn-primary" id="btnRunTest">开始查询</button>
+          </div>
+
+          <div id="testResult" class="hidden" style="margin-top:18px">
+            <div class="pipeline" id="testPipeline"></div>
+            <div class="answer-box" id="testAnswerBox">
+              <div class="answer-main" id="testAnswer">-</div>
+              <div class="answer-sub" id="testAnswerSub"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 日志 ============ -->
+      <section class="view" id="view-logs">
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">查询日志</div>
+              <div class="card-desc">最近 500 条，含未命中记录，便于分析哪些题需要补题库</div>
+            </div>
+            <button class="btn btn-sm" id="btnReloadLogs">刷新</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th style="width:136px">时间</th><th>题目</th><th style="width:132px">答案</th><th style="width:104px">来源</th><th style="width:70px">耗时</th></tr></thead>
+              <tbody id="logBody"><tr><td colspan="5" class="empty">加载中…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 接入 OCS ============ -->
+      <section class="view" id="view-ocs">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:14px">3 步接入 OCS 网课助手</div>
+          <div class="steps">
+            <div class="step">
+              <div class="step-num"></div>
+              <div class="step-body">
+                <b>复制下面的题库配置</b>
+                <p>点击「复制配置」，内容是 OCS 要求的 JSON 数组格式，已包含请求地址和解析规则。</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num"></div>
+              <div class="step-body">
+                <b>打开 OCS → 全局设置 → 题库配置 → 新建</b>
+                <p>把内容粘贴进去，保存。注意 OCS 的题库配置是一个整体数组，若已有其他题库，用逗号拼接在数组里。</p>
+              </div>
+            </div>
+            <div class="step">
+              <div class="step-num"></div>
+              <div class="step-body">
+                <b>回到本页「在线测试」验证</b>
+                <p>测试能出答案后，OCS 里答一次题看控制台日志即可。本服务需保持运行（双击「启动服务.bat」）。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">图片题 / 公式题</div></div>
+          <div class="hint" style="margin-top:0;line-height:1.9">
+            上面的配置已经包含 OCS 5.1+ 的图片题字段（<code>images</code>、<code>suggestion_title</code>、<code>suggestion_options</code>、<code>v</code>），
+            粘贴后 OCS 里那条「暂不支持图片题优化」的提示会自动消失。<br>
+            真正让 AI 看懂图片还需要一个<b>支持视觉的模型</b>：在「模型配置」里填「视觉模型」，或直接让主模型用视觉版本。<br>
+            公式题：如果 OCS 把公式渲染成图片，走的是同一套流程；如果是 LaTeX 文本，普通模型即可处理。
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">题库配置 JSON</div>
+            <div class="row">
+              <button class="btn btn-sm" id="portBadge" title="点击修改服务端口">端口 7788</button>
+              <button class="btn btn-sm btn-primary" id="btnCopyOCS">复制配置</button>
+            </div>
+          </div>
+          <div class="code" id="ocsCode">加载中…</div>
+          <div class="hint" style="margin-top:10px">
+            如果 OCS 和本服务不在同一台机器（比如手机），请把配置里的 <code>127.0.0.1</code> 换成电脑的局域网 IP，并将 <code>data/config.json</code> 中 <code>server.host</code> 改为 <code>0.0.0.0</code>。
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">接口说明</div></div>
+          <div class="kv" style="margin-bottom:8px"><span class="k">请求地址</span><span class="v mono" id="apiUrl">http://127.0.0.1:7788/api/search</span></div>
+          <div class="kv" style="margin-bottom:8px"><span class="k">请求方式</span><span class="v">POST（也支持 GET）</span></div>
+          <div class="kv" style="margin-bottom:8px"><span class="k">参数</span><span class="v mono">title 题干 · options 选项 · type 题型</span></div>
+          <div class="kv"><span class="k">返回</span><span class="v mono">{ code: 1, question, answer, source, analysis }</span></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- 弹窗 -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal" id="modalBox">
+    <div class="modal-head">
+      <div class="modal-title" id="modalTitle">标题</div>
+      <button class="icon-btn" id="modalClose">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot" id="modalFoot">
+      <button class="btn" id="modalCancel">取消</button>
+      <button class="btn btn-primary" id="modalOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="/icons.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
