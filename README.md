@@ -12,8 +12,8 @@
 ## 从 GitHub 克隆后首次使用
 
 ```bash
-git clone <你的仓库地址>
-cd OCS网课助手
+git clone https://github.com/SmTapper/ocs-question-bank.git
+cd ocs-question-bank
 ```
 
 然后双击 **`安装桌面快捷方式.bat`**（装一次快捷方式），再双击 **`启动服务.bat`** 即可。
@@ -319,7 +319,7 @@ OCS 5.1 起，题库配置里如果没有图片相关字段，会提示
 ## 八、目录结构
 
 ```
-OCS网课助手/
+ocs-question-bank/
 ├── 安装桌面快捷方式.bat   # 装一次，之后从桌面双击启动
 ├── 启动服务.bat          # 双击启动（关闭窗口即停止）
 ├── icon.ico              # 桌面图标
