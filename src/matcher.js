@@ -116,9 +116,34 @@ function judgeValue(text) {
 }
 
 /**
+ * 把「数字选项」解析成 0 基下标
+ * 支持：1 / 1. / 1、 / 第1项 / 选项1 / ①（NFKC 会把 ① 归一成 1）
+ * 越界或不是数字返回 -1
+ */
+/** 去掉「答案：」「正确答案是」这类前缀，模型输出里很常见 */
+function stripAnswerPrefix(token) {
+  return String(token == null ? '' : token)
+    .replace(/^\s*(?:正确答案|正确选项|答案|答)\s*(?:是|为|选)?\s*[:：]?\s*/, '')
+    .trim();
+}
+
+function numericOptionIndex(token, optionCount) {
+  const s = String(token == null ? '' : token).normalize('NFKC').replace(/\s+/g, '');
+  const m = s.match(/^(?:第|选项?|选择)?(\d{1,2})(?:项|个|题)?[.、．:：]?$/);
+  if (!m) return -1;
+  const v = parseInt(m[1], 10);
+  if (Number.isNaN(v)) return -1;
+  if (v >= 1 && v <= optionCount) return v - 1;
+  // OCS 有些题库是 0 基的
+  if (v >= 0 && v < optionCount) return v;
+  return -1;
+}
+
+/**
  * 把答案转成「选项文本」形式，避免依赖选项顺序
  * - "C" + ["A. 甲","B. 乙","C. 丙"]  ->  "丙"
  * - "A#C"                            ->  "甲#丙"
+ * - "1#3"（数字选项，1 基）           ->  "甲#丙"
  * - 已经是文本的答案原样保留（去选项前缀）
  * 无选项或字母越界时返回空串
  */
@@ -130,15 +155,19 @@ function answerToText(answer, options, sep) {
   if (!parts.length) return '';
   const out = [];
   for (const p of parts) {
-    if (/^[A-Ha-h]$/.test(p)) {
-      const idx = p.toUpperCase().charCodeAt(0) - 65;
+    const core = stripAnswerPrefix(p);
+    if (/^[A-Ha-h]$/.test(core)) {
+      const idx = core.toUpperCase().charCodeAt(0) - 65;
       const opt = opts[idx];
       if (opt == null) return '';
       const txt = optionText(opt);
       if (!txt) return '';
       out.push(txt);
     } else {
-      out.push(optionText(p));
+      // 数字选项（"1#2#3" 这种模型常见输出），能对上选项就换成选项文本
+      const nIdx = numericOptionIndex(core, opts.length);
+      const txt = nIdx >= 0 ? optionText(opts[nIdx]) : '';
+      out.push(txt || optionText(p));
     }
   }
   return out.join(d);
@@ -188,7 +217,7 @@ function normalizeAnswer(answer, type, options, cfg) {
   const t = String(type || '').toLowerCase();
   const looksJudge = /^(true|false|对|错|正确|错误|是|否|t|f|√|×)$/i.test(arr[0] || '');
   if (t.includes('judge') || t.includes('判断') || looksJudge) {
-    let v = String(arr[0] || '').trim();
+    let v = stripAnswerPrefix(arr[0] || '');
     // 模型给的是选项字母时，先换成对应的选项文本再判语义
     if (/^[A-Ha-h]$/.test(v) && Array.isArray(options) && options.length > 1) {
       const idx = v.toUpperCase().charCodeAt(0) - 65;
@@ -250,7 +279,35 @@ function remapByOptionText(answer, storedOptions, currentOptions) {
   return mapped.length ? mapped.join((answer.match(/[#＃]/) || ['#'])[0]) : answer;
 }
 
+/**
+ * 校验答案是否可用于输出/入库。
+ * 主要拦截：选项被错误拆成过多行后，模型给出越界字母（如 M、N、O），
+ * 或字母索引超出实际选项数。文本答案不拦截，避免误伤填空/简答。
+ */
+function isValidAnswer(answer, q, cfg) {
+  const s = String(answer == null ? '' : answer).trim();
+  if (!s) return false;
+
+  const parts = s.split(/[#＃]/)
+    .map((x) => stripAnswerPrefix(String(x).trim()))
+    .filter(Boolean);
+  if (!parts.length) return false;
+
+  const options = q && q.options;
+  const opts = Array.isArray(options) ? options : parseOptions(options || '');
+  const hasOpts = opts.length > 0;
+
+  for (const p of parts) {
+    if (!/^[A-Za-z]$/.test(p)) continue; // 文本答案一律放行
+    const L = p.toUpperCase();
+    if (!/^[A-H]$/.test(L)) return false; // I~Z 必然是编号溢出
+    if (hasOpts && (L.charCodeAt(0) - 65) >= opts.length) return false;
+  }
+  return true;
+}
+
 module.exports = {
   normalize, similarity, parseOptions,
   optionLetter, optionText, normalizeAnswer, remapByOptionText, answerToText,
+  numericOptionIndex, stripAnswerPrefix, isValidAnswer,
 };

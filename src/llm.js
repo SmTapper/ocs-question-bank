@@ -48,6 +48,10 @@ function buildUserPrompt({ title, options, type, images }) {
   if (opts.length) {
     lines.push('选项：');
     opts.forEach((o, i) => lines.push(`${String.fromCharCode(65 + i)}. ${o}`));
+    // 代码类题目常把多行选项按行拆开，导致编号远超 A~H；提醒模型按真实选项作答
+    if (opts.length > 8) {
+      lines.push('注意：以上条目可能因换行被拆分，请结合题干辨认真实选项；答案只用 A~H 内的字母，或给出选项文本。');
+    }
   } else {
     lines.push('选项：无（请直接给出答案内容）');
   }

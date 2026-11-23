@@ -81,7 +81,7 @@ function cleanup() {
   console.log(`服务就绪${okMock ? '，模型模拟服务就绪' : '（模型模拟服务未就绪）'}\n`);
 
   const results = [];
-  for (const f of ['smoke.js', 'ai-test.js', 'image-test.js']) {
+  for (const f of ['smoke.js', 'ai-test.js', 'image-test.js', 'answer-validate.js']) {
     const code = await runTest(f);
     results.push({ f, code });
   }

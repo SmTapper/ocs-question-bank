@@ -67,9 +67,15 @@ http.createServer((req, res) => {
     }
 
     const isMulti = /题型：多选题/.test(prompt);
-    const content = isMulti
-      ? '```json\n{"answer":"A#D","explanation":"模拟多选解析"}\n```'
-      : '{"answer":"B","explanation":"模拟单选解析"}';
+    let content;
+    if (/越界答案测试/.test(prompt)) {
+      // 模拟选项被拆成 15 行、模型给出越界字母 M 的真实故障场景
+      content = '{"answer":"M","explanation":"故意返回越界字母，用于验证防线"}';
+    } else {
+      content = isMulti
+        ? '```json\n{"answer":"A#D","explanation":"模拟多选解析"}\n```'
+        : '{"answer":"B","explanation":"模拟单选解析"}';
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       id: 'mock',

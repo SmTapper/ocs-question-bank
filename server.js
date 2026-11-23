@@ -178,12 +178,15 @@ async function solve(q, opts = {}) {
     ms: 0,
   };
 
-  // 1) 本地题库
+  // 1) 本地题库（答案需通过合法性校验，防止历史脏数据继续污染输出）
   const local = store.resolve(q.indexText, q.options, cfg, q.images);
-  if (local) {
+  const localAns = local
+    ? matcher.normalizeAnswer(local.answer, q.type || local.entry.type, q.options, cfg)
+    : '';
+  if (local && matcher.isValidAnswer(localAns, q, cfg)) {
     chain.push({ step: 'local', ok: true, ms: Date.now() - started, matchType: local.matchType, score: local.score });
     result.code = 1;
-    result.answer = matcher.normalizeAnswer(local.answer, q.type || local.entry.type, q.options, cfg);
+    result.answer = localAns;
     result.source = 'local';
     result.matchType = local.matchType;
     result.score = local.score;
@@ -192,15 +195,21 @@ async function solve(q, opts = {}) {
     store.logQuery({ q: q.title, type: q.type, answer: result.answer, source: 'local', matchType: local.matchType, score: local.score, ms: result.ms });
     return { result, chain };
   }
-  chain.push({ step: 'local', ok: false, ms: Date.now() - started });
+  chain.push({
+    step: 'local', ok: false, ms: Date.now() - started,
+    ...(local ? { skipped: true, reason: '题库答案无效，已跳过' } : {}),
+  });
 
   // 2) 外部题库源
   if ((cfg.providers || []).some((p) => p.enabled)) {
     const t0 = Date.now();
     const pr = await providers.queryProviders(cfg.providers, q);
-    chain.push({ step: 'providers', ok: !!pr.answer, ms: Date.now() - t0, errors: pr.errors });
-    if (pr.answer) {
-      const pAns = matcher.normalizeAnswer(pr.answer, q.type, q.options, cfg);
+    const pAns = pr.answer ? matcher.normalizeAnswer(pr.answer, q.type, q.options, cfg) : '';
+    const pOk = !!pr.answer && matcher.isValidAnswer(pAns, q, cfg);
+    const pErrors = [...(pr.errors || [])];
+    if (pr.answer && !pOk) pErrors.push('外部源答案不在有效范围，已跳过');
+    chain.push({ step: 'providers', ok: pOk, ms: Date.now() - t0, errors: pErrors });
+    if (pOk) {
       result.code = 1;
       result.answer = formatOut(pAns, q, cfg);
       result.source = `provider:${pr.providerName}`;
@@ -239,6 +248,10 @@ async function solve(q, opts = {}) {
       chain.push({ step: 'llm', ok: true, ms: Date.now() - t0, model: ai.model, images: q.images.length });
       const ans = matcher.normalizeAnswer(ai.answer, q.type, q.options, cfg);
       if (!ans) throw new Error('模型未给出有效答案');
+      // 关键防线：越界字母等异常答案一律不返回、不入库，避免污染题库
+      if (!matcher.isValidAnswer(ans, q, cfg)) {
+        throw new Error(`模型答案「${ans}」不在有效范围，已拦截且不入库`);
+      }
       result.code = 1;
       result.answer = formatOut(ans, q, cfg);
       result.source = 'ai';
