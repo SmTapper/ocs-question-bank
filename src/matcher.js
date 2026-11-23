@@ -91,6 +91,57 @@ function parseOptions(input) {
 
 const OPTION_PREFIX = /^\s*([A-Ha-h])\s*[.、．)）:：]\s*/;
 
+/** 无选项前缀时，用 C 类函数签名判断一个新选项的起点 */
+const CODE_SIG = /^\s*(?:void|int|float|double|char|long|short|unsigned|signed|bool|struct\s+\w+)\s+\**\w+\s*\(/;
+
+/**
+ * 多行选项被按换行拆碎后的合并。
+ * 典型场景：C 代码题每个选项跨多行，OCS 按行传来，4 个选项被拆成十几段。
+ * 优先按 "A." / "B、" 这类前缀分组（最可靠）；没有前缀时退回函数签名启发式。
+ */
+function mergeCodeOptions(parts) {
+  if (!Array.isArray(parts) || parts.length <= 1) return parts;
+
+  // 1) 带选项前缀：按前缀分组，后续无前缀的行并入前一个选项
+  const prefixed = [];
+  parts.forEach((p, i) => { if (OPTION_PREFIX.test(String(p))) prefixed.push(i); });
+  if (prefixed.length >= 2) {
+    const out = [];
+    if (prefixed[0] > 0) out.push(parts.slice(0, prefixed[0]).join('\n'));
+    for (let k = 0; k < prefixed.length; k++) {
+      const from = prefixed[k];
+      const to = k + 1 < prefixed.length ? prefixed[k + 1] : parts.length;
+      out.push(parts.slice(from, to).join('\n'));
+    }
+    return out;
+  }
+
+  // 2) 无前缀：仅当条目数偏多时才用函数签名切分，避免影响正常题目
+  if (parts.length <= 6) return parts;
+  const starts = [];
+  parts.forEach((p, i) => { if (CODE_SIG.test(String(p))) starts.push(i); });
+  if (starts.length < 2) return parts;
+
+  const out = [];
+  if (starts[0] > 0) out.push(parts.slice(0, starts[0]).join('\n'));
+  for (let k = 0; k < starts.length; k++) {
+    const from = starts[k];
+    const to = k + 1 < starts.length ? starts[k + 1] : parts.length;
+    out.push(parts.slice(from, to).join('\n'));
+  }
+  return out;
+}
+
+/** 选项文本是否像被拆碎的片段（`{`、`}`、`;` 或单个非文字符号） */
+function isFragmentOption(text) {
+  const t = String(text == null ? '' : text).trim();
+  if (!t) return true;
+  if (/^[{}()\[\];，,。.]+$/.test(t)) return true;
+  // 单个字符只有在不是字母/数字/汉字时才算碎片（"丙"、"1"、"A" 都是正常选项）
+  if (t.length === 1 && !/[A-Za-z0-9\u4e00-\u9fa5]/.test(t)) return true;
+  return false;
+}
+
 function optionLetter(opt) {
   const m = String(opt).match(OPTION_PREFIX);
   return m ? m[1].toUpperCase() : null;
@@ -298,6 +349,10 @@ function isValidAnswer(answer, q, cfg) {
   const hasOpts = opts.length > 0;
 
   for (const p of parts) {
+    // 纯符号/单个标点（"{" "}" ";"）必然是解析碎片，不是答案
+    if (/^[{}()\[\];，,。.]+$/.test(p)) return false;
+    if (p.length === 1 && !/[A-Za-z0-9\u4e00-\u9fa5]/.test(p)) return false;
+
     if (!/^[A-Za-z]$/.test(p)) continue; // 文本答案一律放行
     const L = p.toUpperCase();
     if (!/^[A-H]$/.test(L)) return false; // I~Z 必然是编号溢出
@@ -307,7 +362,7 @@ function isValidAnswer(answer, q, cfg) {
 }
 
 module.exports = {
-  normalize, similarity, parseOptions,
+  normalize, similarity, parseOptions, mergeCodeOptions, isFragmentOption,
   optionLetter, optionText, normalizeAnswer, remapByOptionText, answerToText,
   numericOptionIndex, stripAnswerPrefix, isValidAnswer,
 };

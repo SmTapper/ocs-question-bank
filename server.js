@@ -142,7 +142,7 @@ function normalizeInput(body) {
   const suggestionOptions = String(body.suggestion_options ?? body.suggestionOptions ?? '').trim();
   return {
     title: String(title).trim(),
-    options: matcher.parseOptions(rawOptions),
+    options: matcher.mergeCodeOptions(matcher.parseOptions(rawOptions)),
     rawOptions,
     type: String(type || '').trim(),
     images,
@@ -159,7 +159,9 @@ function formatOut(ans, q, cfg) {
   if (!preferText) return ans;
   const sep = (cfg.answer && cfg.answer.multipleSeparator) || '#';
   const text = matcher.answerToText(ans, q.options, sep);
-  return text || ans;
+  // 选项被拆碎时，字母→文本会得到 "{" 这类碎片，此时保留字母更安全
+  if (text && !matcher.isFragmentOption(text)) return text;
+  return ans;
 }
 
 async function solve(q, opts = {}) {

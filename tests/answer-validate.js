@@ -39,7 +39,37 @@ const check = (n, c, e) => {
   check('填空单字母 A → 放行', matcher.isValidAnswer('A', { type: 'completion', options: [] }, {}) === true);
   check('空答案 → 拒绝', matcher.isValidAnswer('', { type: 'single', options: four }, {}) === false);
 
-  console.log('\n【2】集成：模型返回越界字母时拦截且不入库');
+  console.log('\n【2】多行代码选项合并（真实故障：17 段 → 4 项）');
+  const rawOptions = [
+    'A. void  f(int  x,int  y)',
+    '{  return  x+y;  }',
+    'B. int f(int  x,y)',
+    '{',
+    'int  z; z=x+y;',
+    'return  z;',
+    '}',
+    'C. int f(int x,int y)',
+    '{',
+    'int  x,y,z;',
+    'z=x+y;',
+    '}',
+    'D. int   f(int  x,int  y)',
+    '{',
+    'int  z;  z=x+y;',
+    'return  z;',
+    '}',
+  ];
+  const merged = matcher.mergeCodeOptions(rawOptions);
+  check('17 段合并为 4 项', merged.length === 4, merged.length);
+
+  const dText = matcher.answerToText('D', merged, '#');
+  check('D 转成完整选项文本', String(dText).length > 20 && !matcher.isFragmentOption(dText), String(dText).slice(0, 40));
+  check('不会输出 "{"', String(dText).trim() !== '{', dText);
+  check('正常 4 项不被改动', matcher.mergeCodeOptions(['A. 甲', 'B. 乙', 'C. 丙', 'D. 丁']).length === 4);
+  check('碎片识别：{', matcher.isFragmentOption('{') === true);
+  check('碎片识别：完整函数定义', matcher.isFragmentOption('int f(int x) { return x; }') === false);
+
+  console.log('\n【3】集成：模型返回越界字母时拦截且不入库');
   await call('/api/config', {
     llm: {
       enabled: true,
